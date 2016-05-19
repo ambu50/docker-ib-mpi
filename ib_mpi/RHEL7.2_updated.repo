@@ -1,0 +1,7 @@
+[HPCGRHEL7.2_updated]
+name=RHEL 7.2 Updated Base Repository
+baseurl=http://myserver/yum/rhel/7/7.2_updated/
+enabled=1
+gpgcheck=False
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+exclude=libipathverbs* compat-rdma compat-rdma-devel dapl* ibacm* ibutils* infini* libcxgb* libibcm* libibmad* libibscif* libibumad* libibverbs* libmlx4* libmthca* libnes* librdmacm* mpi-selector* mpitests* mvapich2* ofed* openmpi* opensm*

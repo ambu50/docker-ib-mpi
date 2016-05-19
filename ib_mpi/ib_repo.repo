@@ -1,0 +1,5 @@
+[IB_REPO]
+name=IB REPO
+baseurl=http://myserver/yum/ib_repo/rhel72/
+enabled=1
+gpgcheck=False
