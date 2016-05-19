@@ -1,0 +1,58 @@
+#!/bin/bash
+#Orignal code Ahmed Bukhamsin - 05/09/2016
+#Rewritten by Antoine Schonewille for Mvapich - 05/11/2016
+
+DOCKER_IMAGE="myserver19:5000/rhel7:ib_mpi"
+
+cp /etc/passwd ~/docker/passwd
+ypcat passwd|grep $USER >>~/docker/passwd
+cp /etc/passwd ~/docker/group
+ypcat group|grep $USER >>~/docker/group
+ypcat group|grep -w $GROUPS >>~/docker/group
+
+MPI_HOME=/usr/mpi/gcc/mvapich2-2.1-qlc
+
+# main command to be run in docker session (spawn)
+cat << EOF >~/docker/master_command
+#!/bin/bash
+export MPI_HOME=$MPI_HOME
+export PATH=/usr/local/bin:\$MPI_HOME/bin/:~/bin/:/bin:/usr/bin
+export LD_LIBRARY_PATH=/usr/local/lib64:/usr/lib64:\$MPI_HOME/lib/:\$MPI_HOME/lib64/
+##echo mpirun $@
+\$MPI_HOME/bin/mpirun_rsh -ssh -export $@
+EOF
+
+chmod 755 ~/docker/master_command
+
+# command ran on each docker instance (ranks)
+cat << EOF >~/docker/command
+#!/bin/bash
+command="\${@}"
+_HOST=\`hostname --short\`
+export MPI_HOME=$MPI_HOME
+export LD_LIBRARY_PATH=/usr/local/lib64/:\$MPI_HOME/lib/
+export PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:\$MPI_HOME/bin/:\$LD_LIBRARY_PATH
+##echo '<'\$_HOST' COMMAND START>'
+echo "\$command" > /tmp/to_run.sh
+/bin/bash /tmp/to_run.sh 2>&1
+##echo '<'\$_HOST' COMMAND END>'
+rm -f /tmp/to_run.sh
+EOF
+
+chmod 755 ~/docker/command
+
+# docker instance launched remotely. called from master_command / ssh on rank 0
+cat << EOF > ~/docker/job
+#!/bin/bash
+command="\${@}"
+_HOST=\`hostname --short\`
+##echo '<'\$_HOST' JOB START>'
+docker run --privileged --ipc=host --net=host -v /home/:/home --device=/dev/infiniband:/dev/infiniband -v ~/docker/passwd:/etc/passwd -v ~/docker/group:/etc/group $DOCKER_IMAGE su - $USER -c "~/docker/command \\"\$command\\""
+##echo '<'\$_HOST' JOB END>'
+EOF
+
+chmod 755 ~/docker/job
+
+docker run --privileged --ipc=host --net=host -v /home/:/home --device=/dev/infiniband:/dev/infiniband -v ~/docker/passwd:/etc/passwd -v ~/docker/group:/etc/group $DOCKER_IMAGE su - $USER -c ~/docker/master_command
+
+
