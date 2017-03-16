@@ -1,3 +1,6 @@
+This repo is no longer maintained, the latest code can be found here (https://github.com/ambu50/wrapper-sq)
+
+
 Docker for HPC
 =======
 ----------
